@@ -229,13 +229,6 @@ Now let’s add the fluffy doc
 ``` r
 # Saving the fluffy doc
 fluffy$save()
-#> List of 6
-#>  $ nInserted  : int 1
-#>  $ nMatched   : int 0
-#>  $ nModified  : int 0
-#>  $ nRemoved   : int 0
-#>  $ nUpserted  : int 0
-#>  $ writeErrors: list()
 ```
 
 On our collection, the expected output right now is a list of length
@@ -258,13 +251,6 @@ minette <- Cat$new(
 )
 # Save it
 minette$save()
-#> List of 6
-#>  $ nInserted  : int 1
-#>  $ nMatched   : int 0
-#>  $ nModified  : int 0
-#>  $ nRemoved   : int 0
-#>  $ nUpserted  : int 0
-#>  $ writeErrors: list()
 ```
 
 What is the expected output of querying our collection now ? A list of
@@ -351,13 +337,6 @@ fluffy <- Cat$new(
   )
 )
 fluffy$save()
-#> List of 6
-#>  $ nInserted  : int 1
-#>  $ nMatched   : int 0
-#>  $ nModified  : int 0
-#>  $ nRemoved   : int 0
-#>  $ nUpserted  : int 0
-#>  $ writeErrors: list()
 
 # Expected output => list of length one,
 # with one character string in "name" and
@@ -381,13 +360,6 @@ minette <- Cat$new(
   )
 )
 minette$save()
-#> List of 6
-#>  $ nInserted  : int 1
-#>  $ nMatched   : int 0
-#>  $ nModified  : int 0
-#>  $ nRemoved   : int 0
-#>  $ nUpserted  : int 0
-#>  $ writeErrors: list()
 
 # Expected output => list of length two,
 # each element has

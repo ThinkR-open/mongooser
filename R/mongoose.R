@@ -55,7 +55,7 @@ model_ <- function(
         "Instance"
       ),
       public = list(
-        save = function() {
+        save = function(quiet = TRUE) {
           con <- mongolite::mongo(
             db = private$con$db,
             collection = name,
@@ -63,9 +63,13 @@ model_ <- function(
             verbose = private$con$verbose,
             options = private$con$options
           )
-          con$insert(
+          inserted <- con$insert(
             schema
           )
+          if (quiet) {
+            return(invisible(inserted))
+          }
+          inserted
         }
       )
     )$new()
