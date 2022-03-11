@@ -55,12 +55,17 @@ con$insert(data.frame(x = "this"))
 #>  $ nRemoved   : num 0
 #>  $ nUpserted  : num 0
 #>  $ writeErrors: list()
+```
+
+``` r
 res <- con$find()
 class(res$x)
 #> [1] "character"
+
 res <- con$find('{"x":1}')
 class(res$x)
 #> [1] "numeric"
+
 res <- con$find('{"x":"this"}')
 class(res$x)
 #> [1] "character"
@@ -74,6 +79,7 @@ It’s even more complex when you start having nested elements.
 ``` r
 con$drop()
 con <- mongolite::mongo()
+
 con$insert(
   list(
     y = data.frame(x = 1)
@@ -86,10 +92,14 @@ con$insert(
 #>  $ nRemoved   : int 0
 #>  $ nUpserted  : int 0
 #>  $ writeErrors: list()
-# You'd expect to have a list with a data.frame
+
+# You'd expect to have a list of length one with a data.frame
 con$find()
 #>   y
 #> 1 1
+```
+
+``` r
 con$insert(
   list(
     z = data.frame(x = 1)
@@ -102,12 +112,14 @@ con$insert(
 #>  $ nRemoved   : int 0
 #>  $ nUpserted  : int 0
 #>  $ writeErrors: list()
-# You'd expect to have 2 lists with a data.frame
+# You'd expect to have a list of length two with data.frames
 con$find()
 #>      y    z
 #> 1    1 NULL
 #> 2 NULL    1
+```
 
+``` r
 # You can also do
 it <- con$iterate()
 while (!is.null(x <- it$one())) {
@@ -137,15 +149,24 @@ while (!is.null(x <- it$one())) {
 library(mongooser)
 # New instance of Mongoose
 mongoose <- Mongoose$new()
+```
 
-# # Connect to the DB
+  - Connect to the DB
+
+<!-- end list -->
+
+``` r
 mongoose$connect(
   url = "mongodb://localhost:2811"
 )
+```
 
-# This create an object that will
-# query / write to the `name`
-# collection (here Cat)
+  - Create an object that will query / write to the `name` collection
+    (here Cat)
+
+<!-- end list -->
+
+``` r
 Cat <- mongoose$model(
   name = "Cat",
   schema = list(
@@ -154,13 +175,20 @@ Cat <- mongoose$model(
     )
   )
 )
-# You can drop everything from the collection if you want
+```
+
+You can drop everything from the collection if you want
+
+``` r
 Cat$drop()
+```
 
-# Cat$new() will create a new document object,
-# You __need__ to pass to the object data that
-# match the schema defined in the model
+  - Cat$new() will create a new document object, you **need** to pass to
+    the object data that match the schema defined in the model
 
+<!-- end list -->
+
+``` r
 # This should fail => bad type
 kitty <- Cat$new(
   list(
@@ -168,6 +196,7 @@ kitty <- Cat$new(
   )
 )
 #> Error: [Bad Type] name does not inherits from character
+
 # This should fail => undefined schema entry
 kitty <- Cat$new(
   list(
@@ -183,11 +212,21 @@ fluffy <- Cat$new(
     name = "Fluffy"
   )
 )
+```
 
-# Expected output => An empty list
+Ok so now let’s read and write to our collection and see if we get
+predictable outputs:
+
+Expected output =\> An empty list
+
+``` r
 Cat$find()
 #> list()
+```
 
+Now let’s add the fluffy doc
+
+``` r
 # Saving the fluffy doc
 fluffy$save()
 #> List of 6
@@ -197,17 +236,21 @@ fluffy$save()
 #>  $ nRemoved   : int 0
 #>  $ nUpserted  : int 0
 #>  $ writeErrors: list()
+```
 
-# Expected output =>
-# A list of length one, and the first element is
-# $name
-# [1] "Fluffy"
+On our collection, the expected output right now is a list of length
+one, and the first element is: \> $name \> \[1\] “Fluffy”
+
+``` r
 Cat$find()
 #> [[1]]
 #> [[1]]$name
 #> [1] "Fluffy"
+```
 
-# Let's now create a new document
+Let’s now create a new document and save it
+
+``` r
 minette <- Cat$new(
   list(
     name = "minette"
@@ -222,11 +265,13 @@ minette$save()
 #>  $ nRemoved   : int 0
 #>  $ nUpserted  : int 0
 #>  $ writeErrors: list()
+```
 
-# Expected output =>
-# A list of length two, with both elements being
-# $name
-# [1] "" <- character string
+What is the expected output of querying our collection now ? A list of
+length two, with both elements being \> $name \> \[1\] "" \<- character
+string with the name
+
+``` r
 Cat$find()
 #> [[1]]
 #> [[1]]$name
@@ -236,9 +281,11 @@ Cat$find()
 #> [[2]]
 #> [[2]]$name
 #> [1] "minette"
+```
 
-# Let's now compare to what you'd get with
-# base mongolite
+Let’s now compare to what you’d get with base mongolite
+
+``` r
 con <- mongolite::mongo(collection = "Cat")
 con$drop()
 con$insert(
@@ -256,6 +303,9 @@ con$insert(
 con$find()
 #>     name
 #> 1 Fluffy
+```
+
+``` r
 con$insert(
   list(
     name = "minette"

@@ -10,7 +10,8 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.path = "man/figures/README-",
   out.width = "100%",
-  eval = TRUE
+  eval = TRUE,
+  error = TRUE
 )
 ```
 
@@ -49,10 +50,15 @@ Here is a simple example:
 con <- mongolite::mongo()
 con$insert(data.frame(x = 1))
 con$insert(data.frame(x = "this"))
+```
+
+```{r}
 res <- con$find()
 class(res$x)
+
 res <- con$find('{"x":1}')
 class(res$x)
+
 res <- con$find('{"x":"this"}')
 class(res$x)
 ```
@@ -64,21 +70,28 @@ It's even more complex when you start having nested elements.
 ```{r}
 con$drop()
 con <- mongolite::mongo()
+
 con$insert(
   list(
     y = data.frame(x = 1)
   )
 )
-# You'd expect to have a list with a data.frame
+
+# You'd expect to have a list of length one with a data.frame
 con$find()
+```
+
+```{r}
 con$insert(
   list(
     z = data.frame(x = 1)
   )
 )
-# You'd expect to have 2 lists with a data.frame
+# You'd expect to have a list of length two with data.frames
 con$find()
+```
 
+```{r}
 # You can also do
 it <- con$iterate()
 while (!is.null(x <- it$one())) {
@@ -99,15 +112,19 @@ docker run -d -p 2811:27017 mongo:3.4
 library(mongooser)
 # New instance of Mongoose
 mongoose <- Mongoose$new()
+```
 
-# # Connect to the DB
++ Connect to the DB
+
+```{r}
 mongoose$connect(
   url = "mongodb://localhost:2811"
 )
+```
 
-# This create an object that will
-# query / write to the `name`
-# collection (here Cat)
++ Create an object that will query / write to the `name` collection (here Cat)
+
+```{r}
 Cat <- mongoose$model(
   name = "Cat",
   schema = list(
@@ -116,19 +133,24 @@ Cat <- mongoose$model(
     )
   )
 )
-# You can drop everything from the collection if you want
+```
+
+You can drop everything from the collection if you want
+
+```{r}
 Cat$drop()
+```
 
-# Cat$new() will create a new document object,
-# You __need__ to pass to the object data that
-# match the schema defined in the model
++ Cat$new() will create a new document object, you __need__ to pass to the object data that match the schema defined in the model
 
+```{r}
 # This should fail => bad type
 kitty <- Cat$new(
   list(
     name = 1234
   )
 )
+
 # This should fail => undefined schema entry
 kitty <- Cat$new(
   list(
@@ -143,20 +165,34 @@ fluffy <- Cat$new(
     name = "Fluffy"
   )
 )
+```
 
-# Expected output => An empty list
+Ok so now let's read and write to our collection and see if we get predictable outputs:  
+
+Expected output => An empty list
+
+```{r}
 Cat$find()
+```
 
+Now let's add the fluffy doc
+
+```{r}
 # Saving the fluffy doc
 fluffy$save()
+```
 
-# Expected output =>
-# A list of length one, and the first element is
-# $name
-# [1] "Fluffy"
+On our collection, the expected output right now is a list of length one, and the first element is:
+> $name
+> [1] "Fluffy"
+
+```{r}
 Cat$find()
+```
 
-# Let's now create a new document
+Let's now create a new document and save it
+
+```{r}
 minette <- Cat$new(
   list(
     name = "minette"
@@ -164,15 +200,20 @@ minette <- Cat$new(
 )
 # Save it
 minette$save()
+```
 
-# Expected output =>
-# A list of length two, with both elements being
-# $name
-# [1] "" <- character string
+What is the expected output of querying our collection now ? A list of length two, with both elements being
+> $name
+> [1] "" <- character string with the name
+
+```{r}
 Cat$find()
 
-# Let's now compare to what you'd get with
-# base mongolite
+```
+
+Let's now compare to what you'd get with base mongolite
+
+```{r}
 con <- mongolite::mongo(collection = "Cat")
 con$drop()
 con$insert(
@@ -181,6 +222,9 @@ con$insert(
   )
 )
 con$find()
+```
+
+```{r}
 con$insert(
   list(
     name = "minette"
