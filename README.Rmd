@@ -281,10 +281,15 @@ minette$save()
 # one character string in "name" and
 # one data frame in "food"
 Cat$find()
+```
 
-# Let's now compare to mongolite default behavior
+Compare to mongolite default behavior:
+
+```{r}
 con <- mongolite::mongo(collection = "Cat")
+
 con$drop()
+
 con$insert(
   list(
     name = "fluffy",
@@ -294,6 +299,7 @@ con$insert(
     )
   )
 )
+
 con$find()
 
 con$insert(
@@ -305,5 +311,6 @@ con$insert(
     )
   )
 )
+
 con$find()
 ```

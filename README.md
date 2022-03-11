@@ -410,10 +410,15 @@ Cat$find()
 #> [[2]]$food
 #>         date type
 #> 1 2022-02-12 cake
+```
 
-# Let's now compare to mongolite default behavior
+Compare to mongolite default behavior:
+
+``` r
 con <- mongolite::mongo(collection = "Cat")
+
 con$drop()
+
 con$insert(
   list(
     name = "fluffy",
@@ -430,6 +435,7 @@ con$insert(
 #>  $ nRemoved   : int 0
 #>  $ nUpserted  : int 0
 #>  $ writeErrors: list()
+
 con$find()
 #>     name             food
 #> 1 fluffy 2022-02-12, fish
@@ -450,6 +456,7 @@ con$insert(
 #>  $ nRemoved   : int 0
 #>  $ nUpserted  : int 0
 #>  $ writeErrors: list()
+
 con$find()
 #>      name             food
 #> 1  fluffy 2022-02-12, fish
