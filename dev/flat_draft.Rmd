@@ -1,0 +1,152 @@
+---
+title: "flat_draft.Rmd empty"
+output: html_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r development, include=FALSE}
+library(testthat)
+```
+
+```{r development-load}
+# Load already included functions if relevant
+pkgload::load_all(export_all = FALSE)
+```
+
+# draft
+
+What we want to reproduce :
+
+```js
+const mongoose = require('mongoose');
+mongoose.connect("mongodb://127.0.0.1:27017/test")
+
+const Cat = mongoose.model('Cat', { name: String });
+
+const kitty = new Cat({ name: 'Zildjian' });
+kitty.save().then(() => console.log('meow'));
+```
+
+It should look like this :
+
+```r
+library(mongooser)
+mongooser_connect('mongodb://127.0.0.1:27017/test')
+Cat <- model(
+  "Cat",
+  properties = list(
+    name = character
+  ),
+  validator = list(
+    name = as.character
+  )
+)
+kitty <- Cat$new(list(name = "Zildjian")))
+kitty$save()
+```
+
+```{r}
+system("docker run --name mongo -p 27017:27017 -d mongo")
+```
+
+## Utils
+
+# check
+
+```{r function-check}
+#' Title
+#'
+#' Description
+#'
+#' @return
+#'
+#' @noRd
+check_props <- function(
+  properties,
+  validator
+) {
+  all_nms <- all(
+    names(properties) %in% names(validator)
+  )
+  if (!all_nms) {
+    stop(
+      "[Undefined Entry] All properties should be matched in the validator",
+      call. = FALSE
+    )
+  }
+}
+
+check_vals <- function(
+  properties,
+  validator
+) {
+  all_nms <- all(
+    names(validator) %in% names(properties)
+  )
+  if (!all_nms) {
+    stop(
+      "[Undefined Entry] All validator should be matched in the properties",
+      call. = FALSE
+    )
+  }
+}
+```
+
+```{r example-check}
+check_props(
+  properties = list(
+    name = "Zildjian"
+  ),
+  validator = list(
+    name = as.character
+  )
+)
+check_vals(
+  properties = list(
+    name = "Zildjian"
+  ),
+  validator = list(
+    name = as.character
+  )
+)
+```
+
+
+
+```{r tests-check}
+test_that("check works", {
+  expect_error(
+    check_props(
+      properties = list(
+        name = "Zildjian"
+      ),
+      validator = list(
+        age = as.numeric
+      )
+    )
+  )
+  expect_error(
+    check_vals(
+      properties = list(
+        name = "Zildjian"
+      ),
+      validator = list(
+        name = as.character,
+        age = as.numeric
+      )
+    )
+  )
+})
+```
+
+
+```{r development-inflate, eval=FALSE}
+# Run but keep eval=FALSE to avoid infinite loop
+# Execute in the console directly
+fusen::inflate(
+  flat_file = "dev/flat_draft.Rmd",
+  vignette_name = NA
+)
+```
+

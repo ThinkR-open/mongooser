@@ -1,0 +1,28 @@
+flat_draft.Rmd:
+  path: dev/flat_draft.Rmd
+  state: active
+  R: R/check_props.R
+  tests: tests/testthat/test-check_props.R
+  vignettes: []
+  inflate:
+    pkg: mongooser
+    flat_file: dev/flat_draft.Rmd
+    vignette_name: .na
+    open_vignette: yes
+    check: yes
+    document: yes
+    overwrite: ask
+flat_model.Rmd:
+  path: dev/flat_model.Rmd
+  state: active
+  R: R/model.R
+  tests: tests/testthat/test-model.R
+  vignettes: []
+  inflate:
+    pkg: mongooser
+    flat_file: dev/flat_model.Rmd
+    vignette_name: .na
+    open_vignette: yes
+    check: yes
+    document: yes
+    overwrite: ask

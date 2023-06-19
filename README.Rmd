@@ -22,295 +22,167 @@ knitr::opts_chunk$set(
 
 [WIP / DO NOT USE IN PRODUCTION]
 
-The goal of mongooser is to port [mongoosejs]() to R, for a more, predictable use of MongoDB in a production context.
+The goal of mongooser is to port [mongoosejs](https://mongoosejs.com/) to R, for a more, predictable use of MongoDB in a production context.
 
 ## Installation
 
 You can install the development version of mongooser like so:
 
 ``` r
-remotes::install_github("thinkr-open/mongooser")
+pak::pak("thinkr-open/mongooser")
 ```
 
 ### What's wrong with `{mongolite}`?
 
-Nothing, `{mongooser}` is actually built on top of it. 
+Nothing, `{mongooser}` is actually built on top of it.
 
 ### Ok, so why?
 
-An issue with MongoDB is that it doesn't enforce any kind of schema, and R isn't very well equiped to handle unstructured data. 
+An issue with MongoDB is that it doesn't enforce any kind of schema, and R isn't very well equiped to handle unstructured data.
 
-Also, given that it's unstructured and does the type conversion for you, you can get unexpected results when using MongoDB with R. 
+Also, given that it's unstructured and does the type conversion for you, you can get unexpected results when using MongoDB with R.
 
-And on top of that, human tend to be a little bit lazy, and if the db allows them to insert random unstructured elements in the db, well, they'll do it, and then some data engineer will cry and scream to scrap and restructure the data to be usable. 
+And on top of that, human tend to be a little bit lazy, and if the db allows them to insert random unstructured elements in the db, well, they'll do it, and then some data engineer will cry and scream to scrap and restructure the data to be usable.
 
 Here is a simple example:
 
-```{r}
-con <- mongolite::mongo()
-con$insert(data.frame(x = 1))
-con$insert(data.frame(x = "this"))
+```{r eval = TRUE, error = TRUE}
+system("docker run -p 27017:27017 -d mongo")
+Sys.sleep(10)
+```
+
+```{r include=FALSE}
+mongolite::mongo()$drop()
 ```
 
 ```{r}
-res <- con$find()
-class(res$x)
-
-res <- con$find('{"x":1}')
-class(res$x)
-
-res <- con$find('{"x":"this"}')
-class(res$x)
-```
-
-As MongoDB & `{mongolite}` doesn't inforce any kind of type on read/write, it can be hard to rely on the output. 
-
-It's even more complex when you start having nested elements. 
-
-```{r}
-con$drop()
-con <- mongolite::mongo()
-
-con$insert(
-  list(
-    y = data.frame(x = 1)
-  )
+fridge <- mongolite::mongo()
+monday_meal <- list(
+  day = Sys.Date() + 1,
+  ingredient = c("tofu", "brocoli"),
+  to_reheat = TRUE,
+  box = "blue"
 )
 
-# You'd expect to have a list of length one with a data.frame
-con$find()
+fridge$insert(monday_meal)
 ```
 
 ```{r}
-con$insert(
-  list(
-    z = data.frame(x = 1)
-  )
+class(monday_meal)
+
+fridge_find <- fridge$find()
+
+class(fridge_find)
+
+fridge_iterate <- fridge$iterate()$one()
+
+class(fridge_iterate)
+```
+
+It's even more intersting if you look at the detail structure of each element:
+
+```{r}
+dplyr::glimpse(monday_meal)
+dplyr::glimpse(fridge_find)
+dplyr::glimpse(fridge_iterate)
+```
+
+Let's insert another list:
+
+```{r}
+tuesday_meal <- list(
+  day = Sys.Date() + 2,
+  ingredient = "pasta",
+  box = "red"
 )
-# You'd expect to have a list of length two with data.frames
-con$find()
+
+fridge$insert(tuesday_meal)
 ```
 
-```{r}
-# You can also do
-it <- con$iterate()
-while (!is.null(x <- it$one())) {
-  print(x)
-}
-# But that's still not exactly what you'd want
+Depending on what you query, you won't get the same structure:
+
+```{r eval = TRUE, echo = TRUE}
+dplyr::glimpse(
+  fridge$iterate('{"box": "blue"}')$one()
+)
 ```
 
-`{mongooser}` tries to solve that issue by porting [mongoose.js]() to R. 
+```{r eval = TRUE, echo = TRUE}
+dplyr::glimpse(
+  fridge$iterate('{"box": "red"}')$one()
+)
+```
 
-## Here is an example 
+
+As MongoDB & `{mongolite}` doesn't inforce any kind of type on read/write, it can be hard to rely on the output.
+
+`{mongooser}` tries to solve that issue by porting [mongoosejs](https://mongoosejs.com/), an object modeling tooling for MongoDB and NodeJS, to R.
+
+## Here is an example
 
 ```
 docker run -d -p 2811:27017 mongo:3.4
 ```
 
-```{r error = TRUE}
+The comments are the correponding mongoosejs codes
+
+```{r eval = TRUE}
+# const mongoose = require('mongoose');
 library(mongooser)
-# New instance of Mongoose
-mongoose <- Mongoose$new()
-```
 
-+ Connect to the DB
-
-```{r}
-mongoose$connect(
-  url = "mongodb://localhost:2811"
+# mongoose.connect("mongodb://127.0.0.1:27017/test")
+mongooser_connect(
+  db = "test",
+  url = "mongodb://localhost",
+  verbose = FALSE,
+  options = mongolite::ssl_options()
 )
 ```
 
-+ Create an object that will query / write to the `name` collection (here Cat)
+We'll then build a model, which is a schema for our data:
 
 ```{r}
-Cat <- mongoose$model(
-  name = "Cat",
-  schema = list(
-    name = list(
-      type = "character"
-    )
+# const Cat = mongoose.model('Cat', { name: String });
+Food <- model(
+  "Food",
+  properties = list(
+    day = \(x) structure(NA_real_, class = "Date"),
+    ingredient = character,
+    box = character,
+    to_reheat = logical
+  ),
+  validator = list(
+    day = lubridate::ymd,
+    ingredient = as.character,
+    box = as.character,
+    to_reheat = as.logical
   )
 )
 ```
 
-You can drop everything from the collection if you want
+Here, properties is a list of function that returns a data type.
+It should be one of base R data type, or a function that returns a datatype.
+If you want to build your own properties, it should be a function that takes one argument (the lenght) and return a repetition of that data type.
 
-```{r}
-Cat$drop()
+You can then create an instance of that model and save it:
+
+```{r eval = TRUE}
+monday <- Food$new(
+  monday_meal
+)
+monday$save()
+
+tuesday <- Food$new(
+  tuesday_meal
+)
+tuesday$save()
 ```
 
-+ Cat$new() will create a new document object, you __need__ to pass to the object data that match the schema defined in the model
+Then, you can query the model:
 
-```{r}
-# This should fail => bad type
-kitty <- Cat$new(
-  list(
-    name = 1234
-  )
-)
-
-# This should fail => undefined schema entry
-kitty <- Cat$new(
-  list(
-    name = 1234,
-    weight = 12
-  )
-)
-
-# This will work
-fluffy <- Cat$new(
-  list(
-    name = "Fluffy"
-  )
+```{r eval = TRUE, echo = TRUE}
+dplyr::glimpse(
+  Food$find()
 )
 ```
 
-Ok so now let's read and write to our collection and see if we get predictable outputs:  
-
-Expected output => An empty list
-
-```{r}
-Cat$find()
-```
-
-Now let's add the fluffy doc
-
-```{r}
-# Saving the fluffy doc
-fluffy$save()
-```
-
-On our collection, the expected output right now is a list of length one, and the first element is:
-> $name
-> [1] "Fluffy"
-
-```{r}
-Cat$find()
-```
-
-Let's now create a new document and save it
-
-```{r}
-minette <- Cat$new(
-  list(
-    name = "minette"
-  )
-)
-# Save it
-minette$save()
-```
-
-What is the expected output of querying our collection now ? A list of length two, with both elements being
-> $name
-> [1] "" <- character string with the name
-
-```{r}
-Cat$find()
-
-```
-
-Let's now compare to what you'd get with base mongolite
-
-```{r}
-con <- mongolite::mongo(collection = "Cat")
-con$drop()
-con$insert(
-  list(
-    name = "Fluffy"
-  )
-)
-con$find()
-```
-
-```{r}
-con$insert(
-  list(
-    name = "minette"
-  )
-)
-con$find()
-```
-
-Here for a more complex example with a dataframe inside
-```{r}
-Cat <- mongoose$model(
-  name = "Cat",
-  schema = list(
-    name = list(
-      type = "character"
-    ),
-    food = list(
-      type = "data.frame"
-    )
-  )
-)
-
-Cat$drop()
-
-fluffy <- Cat$new(
-  list(
-    name = "fluffy",
-    food = data.frame(
-      date = "2022-02-12",
-      type = "fish"
-    )
-  )
-)
-fluffy$save()
-
-# Expected output => list of length one,
-# with one character string in "name" and
-# one data frame in "food"
-Cat$find()
-
-minette <- Cat$new(
-  list(
-    name = "minette",
-    food = data.frame(
-      date = "2022-02-12",
-      type = "cake"
-    )
-  )
-)
-minette$save()
-
-# Expected output => list of length two,
-# each element has
-# one character string in "name" and
-# one data frame in "food"
-Cat$find()
-```
-
-Compare to mongolite default behavior:
-
-```{r}
-con <- mongolite::mongo(collection = "Cat")
-
-con$drop()
-
-con$insert(
-  list(
-    name = "fluffy",
-    food = data.frame(
-      date = "2022-02-12",
-      type = "fish"
-    )
-  )
-)
-
-con$find()
-
-con$insert(
-  list(
-    name = "minette",
-    food = data.frame(
-      date = "2022-02-12",
-      type = "cake"
-    )
-  )
-)
-
-con$find()
-```
