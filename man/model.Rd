@@ -19,7 +19,6 @@ Mongoose model
 \examples{
 # const mongoose = require('mongoose');
 library(mongooser)
-
 # mongoose.connect("mongodb://127.0.0.1:27017/test")
 mongooser_connect(
   db = "test",
@@ -62,7 +61,12 @@ fluffy$save()
 
 Cat$find()
 
+Cat$find_one()
+Cat$find_one(list(name = "fluffy"))
+
 Cat$drop()
+Cat$disconnect()
+Cat$count_documents()
 
 Food <- model(
   "Food",

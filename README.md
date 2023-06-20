@@ -83,21 +83,21 @@ element:
 ``` r
 dplyr::glimpse(monday_meal)
 #> List of 4
-#>  $ day       : Date[1:1], format: "2023-06-20"
+#>  $ day       : Date[1:1], format: "2023-06-21"
 #>  $ ingredient: chr [1:2] "tofu" "brocoli"
 #>  $ to_reheat : logi TRUE
 #>  $ box       : chr "blue"
 dplyr::glimpse(fridge_find)
 #> Rows: 1
 #> Columns: 4
-#> $ day        <list> "2023-06-20"
+#> $ day        <list> "2023-06-21"
 #> $ ingredient <list> <"tofu", "brocoli">
 #> $ to_reheat  <list> TRUE
 #> $ box        <list> "blue"
 dplyr::glimpse(fridge_iterate)
 #> List of 4
 #>  $ day       :List of 1
-#>   ..$ : chr "2023-06-20"
+#>   ..$ : chr "2023-06-21"
 #>  $ ingredient:List of 2
 #>   ..$ : chr "tofu"
 #>   ..$ : chr "brocoli"
@@ -134,7 +134,7 @@ dplyr::glimpse(
 )
 #> List of 4
 #>  $ day       :List of 1
-#>   ..$ : chr "2023-06-20"
+#>   ..$ : chr "2023-06-21"
 #>  $ ingredient:List of 2
 #>   ..$ : chr "tofu"
 #>   ..$ : chr "brocoli"
@@ -150,7 +150,7 @@ dplyr::glimpse(
 )
 #> List of 3
 #>  $ day       :List of 1
-#>   ..$ : chr "2023-06-21"
+#>   ..$ : chr "2023-06-22"
 #>  $ ingredient:List of 1
 #>   ..$ : chr "pasta"
 #>  $ box       :List of 1
@@ -192,16 +192,22 @@ Food <- model(
   properties = list(
     day = \(x) structure(NA_real_, class = "Date"),
     ingredient = character,
-    sticker = character,
+    box = character,
     to_reheat = logical
   ),
   validator = list(
     day = lubridate::ymd,
     ingredient = as.character,
-    sticker = as.character,
+    box = as.character,
     to_reheat = as.logical
   )
 )
+```
+
+Let’s empty our collection first:
+
+``` r
+Food$drop()
 ```
 
 Here, properties is a list of function that returns a data type. It
@@ -216,16 +222,26 @@ You can then create an instance of that model and save it:
 monday <- Food$new(
   monday_meal
 )
-#> Error: attempt to apply non-function
 monday$save()
-#> Error in eval(expr, envir, enclos): object 'monday' not found
+#> List of 6
+#>  $ nInserted  : int 1
+#>  $ nMatched   : int 0
+#>  $ nModified  : int 0
+#>  $ nRemoved   : int 0
+#>  $ nUpserted  : int 0
+#>  $ writeErrors: list()
 
 tuesday <- Food$new(
   tuesday_meal
 )
-#> Error: attempt to apply non-function
 tuesday$save()
-#> Error in eval(expr, envir, enclos): object 'tuesday' not found
+#> List of 6
+#>  $ nInserted  : int 1
+#>  $ nMatched   : int 0
+#>  $ nModified  : int 0
+#>  $ nRemoved   : int 0
+#>  $ nUpserted  : int 0
+#>  $ writeErrors: list()
 ```
 
 Then, you can query the model:
@@ -234,5 +250,41 @@ Then, you can query the model:
 dplyr::glimpse(
   Food$find()
 )
-#>  list()
+#> List of 2
+#>  $ :List of 4
+#>   ..$ day       : Date[1:1], format: "2023-06-21"
+#>   ..$ ingredient: chr [1:2] "tofu" "brocoli"
+#>   ..$ box       : chr "blue"
+#>   ..$ to_reheat : logi TRUE
+#>  $ :List of 4
+#>   ..$ day       : Date[1:1], format: "2023-06-22"
+#>   ..$ ingredient: chr "pasta"
+#>   ..$ box       : chr "red"
+#>   ..$ to_reheat : logi FALSE
+```
+
+List the number of items :
+
+``` r
+Food$count_documents()
+#> [1] 2
+```
+
+Query one item with `find_one()`. Note that this will return the first
+element matching the query, that does not mean that there are no other
+records matching this query:
+
+``` r
+Food$find_one()
+#> $day
+#> [1] "2023-06-21"
+#> 
+#> $ingredient
+#> [1] "tofu"    "brocoli"
+#> 
+#> $box
+#> [1] "blue"
+#> 
+#> $to_reheat
+#> [1] TRUE
 ```

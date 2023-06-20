@@ -160,6 +160,12 @@ Food <- model(
 )
 ```
 
+Let's empty our collection first:
+
+```{r eval = TRUE}
+Food$drop()
+```
+
 Here, properties is a list of function that returns a data type.
 It should be one of base R data type, or a function that returns a datatype.
 If you want to build your own properties, it should be a function that takes one argument (the lenght) and return a repetition of that data type.
@@ -186,3 +192,15 @@ dplyr::glimpse(
 )
 ```
 
+List the number of items :
+
+```{r eval = TRUE, echo = TRUE}
+Food$count_documents()
+```
+
+Query one item with `find_one()`.
+Note that this will return the first element matching the query, that does not mean that there are no other records matching this query:
+
+```{r}
+Food$find_one()
+```

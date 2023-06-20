@@ -10,7 +10,6 @@
 #' @examples
 #' # const mongoose = require('mongoose');
 #' library(mongooser)
-#' 
 #' # mongoose.connect("mongodb://127.0.0.1:27017/test")
 #' mongooser_connect(
 #'   db = "test",
@@ -18,7 +17,7 @@
 #'   verbose = FALSE,
 #'   options = mongolite::ssl_options()
 #' )
-#' 
+#'
 #' # const Cat = mongoose.model('Cat', { name: String });
 #' Cat <- model(
 #'   "Cat",
@@ -32,7 +31,7 @@
 #'   )
 #' )
 #' Cat$drop()
-#' 
+#'
 #' # const kitty = new Cat({ name: 'Zildjian' });
 #' kitty <- Cat$new(
 #'   list(
@@ -46,15 +45,20 @@
 #'     name = "fluffy"
 #'   )
 #' )
-#' 
+#'
 #' # kitty.save().then(() => console.log('meow'));
 #' kitty$save()
 #' fluffy$save()
-#' 
+#'
 #' Cat$find()
-#' 
+#'
+#' Cat$find_one()
+#' Cat$find_one(list(name = "fluffy"))
+#'
 #' Cat$drop()
-#' 
+#' Cat$disconnect()
+#' Cat$count_documents()
+#'
 #' Food <- model(
 #'   "Food",
 #'   properties = list(
@@ -80,8 +84,8 @@
 #' monday$save()
 #' res <- Food$find()[[1]]
 #' class(res$day) == class(f_m$day)
-#' 
-#' 
+#'
+#'
 #' f_t <- list(
 #'   ingredient = c("carrot", "potato"),
 #'   sticker = "carrot",
@@ -93,7 +97,7 @@
 #' tuesday$save()
 #' Food$find()[[2]]$day
 #' class(Food$find()[[2]]$to_reheat)
-#' 
+#'
 #' Food$find(
 #'   list(
 #'     sticker = "carrot"
@@ -103,7 +107,7 @@ model <- function(
   name,
   properties,
   validator
-) {
+    ) {
   # Check that all properties are in the validator
   if (length(setdiff(names(properties), names(validator))) > 0) {
     stop("Some properties are not in the validator")
@@ -113,13 +117,25 @@ model <- function(
     stop("Some validator are not in the properties")
   }
 
-  object_con <- mongolite::mongo(
+  # This is a weird R6 class that is not really an R6 Class
+  # Create an env that mimic self, private and public
+  shelf <- new.env()
+
+  shelf$object_con <- mongolite::mongo(
     db = con$db,
     collection = name,
     url = con$url,
     verbose = con$verbose,
     options = con$options
   )
+  shelf$name <- name
+  shelf$validator <- validator
+  shelf$properties <- properties
+  shelf$empt <- lapply(
+    properties,
+    function(x) x(1)
+  )
+  shelf$keys <- names(properties)
 
   cl <- R6::R6Class(
     "Mongoose",
@@ -128,61 +144,61 @@ model <- function(
   pagesize = 1000,
   stop_on_error = TRUE,
   ...
-      ) {
-        object_con$insert(
-          data = private$properties,
+          ) {
+        shelf$object_con$insert(
+          data = private$props,
           pagesize = pagesize,
           stop_on_error = stop_on_error,
           ...
         )
       },
       initialize = function(
-  properties
- ) {
-        check_props(properties, validator)
-        for (i in names(properties)) {
-          properties[[i]] <- validator[[i]](
-            properties[[i]]
+  props) {
+        check_props(props, shelf$validator)
+        if (
+          !all(names(props) %in% names(shelf$validator))
+        ) {
+          stop(
+            "[Undefined Prop] All props should be matched in the properties of the model"
           )
         }
-        private$properties <- properties
+        for (i in names(props)) {
+          props[[i]] <- shelf$validator[[i]](
+            props[[i]]
+          )
+        }
+        private$props <- props
       }
     ),
     private = list(
-      validator = validator,
-      properties = NULL
+      props = NULL
     )
   )
   cl$find <- function(
   query = list(),
-  fields = '{"_id" : 0}',
+  fields = "{}",
   sort = "{}",
   skip = 0,
   limit = 0,
   converter = jsonlite::toJSON
       ) {
     query <- converter(query)
-    it <- object_con$iterate(
+    it <- shelf$object_con$iterate(
       query = query,
       fields = fields,
       sort = sort,
       skip = skip,
       limit = limit
     )
-    empt <- lapply(
-      properties,
-      \(x) x(1)
-    )
     res <- list()
-    keys <- names(properties)
     while (!is.null(batch <- it$one())) {
       tree <- list()
-      for (k in keys) {
+      for (k in shelf$keys) {
         tree[[k]] <- {
           if (is.null(batch[[k]])) {
-            empt[[k]]
+            shelf$empt[[k]]
           } else {
-            validator[[k]](batch[[k]])
+            shelf$validator[[k]](batch[[k]])
           }
         }
       }
@@ -190,11 +206,41 @@ model <- function(
     }
     res
   }
-  cl$drop <- function() {
-    object_con$drop()
+  cl$find_one <- function(
+  query = list(),
+  fields = "{}",
+  sort = "{}",
+  skip = 0,
+  limit = 0,
+  converter = jsonlite::toJSON
+      ) {
+    query <- converter(query)
+    it <- shelf$object_con$iterate(
+      query = query,
+      fields = fields,
+      sort = sort,
+      skip = skip,
+      limit = limit
+    )
+    batch <- it$one()
+    tree <- list()
+    for (k in shelf$keys) {
+      tree[[k]] <- {
+        if (is.null(batch[[k]])) {
+          shelf$empt[[k]]
+        } else {
+          shelf$validator[[k]](batch[[k]])
+        }
+      }
+    }
+    tree
   }
+  cl$drop <- shelf$object_con$drop
+  cl$count_documents <- shelf$object_con$count
+  cl$disconnect <- shelf$object_con$disconnect
   cl
 }
+
 con <- new.env()
 
 #' Connect Mongoose
@@ -206,11 +252,10 @@ mongooser_connect <- function(
   url = "mongodb://localhost",
   verbose = FALSE,
   options = mongolite::ssl_options()
-) {
+    ) {
   # We don't actually connect but store the values
   con$db <- db
   con$url <- url
   con$verbose <- verbose
   con$options <- options
 }
-

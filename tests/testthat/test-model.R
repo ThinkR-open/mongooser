@@ -5,9 +5,12 @@ test_that("model works", {
   skip_on_cran()
   skip_if(
     attempt::is_try_error(
-      attempt::attempt({
-        mongolite::mongo()$find()
-      }, silent = TRUE)
+      attempt::attempt(
+        {
+          mongolite::mongo()$find()
+        },
+        silent = TRUE
+      )
     )
   )
   mongooser_connect(
@@ -27,7 +30,6 @@ test_that("model works", {
       name = as.character,
       age = as.numeric
     )
-
   )
   expect_true(
     inherits(Cat, "R6ClassGenerator")
